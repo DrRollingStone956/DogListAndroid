@@ -1,5 +1,7 @@
 package com.example.doglist
 
+
+import androidx.compose.runtime.mutableStateListOf
 import android.os.Bundle
 import android.widget.TextView
 
@@ -40,52 +42,55 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.*
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 import com.example.doglist.ui.theme.DogListTheme
 var errorsearch = Color.Unspecified
+
+class DogViewModel : ViewModel() {
+    var dogList = mutableStateListOf("Reks", "Azor", "Łatka")
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-
             DogListTheme {
-
                 DogApp()
             }
         }
     }
-
 }
 
 @Composable
 fun DogApp() {
     val navController = rememberNavController()
+    val dogViewModel: DogViewModel = viewModel()
 
-    // Navigation setup
     NavHost(navController = navController, startDestination = "dogList") {
-        composable("dogList") { DogListScreen(navController) }
+        composable("dogList") { DogListScreen(navController, dogViewModel) }
         composable("settings") { SettingsScreen(navController) }
         composable("profile") { ProfileScreen(navController) }
         composable("dogDetail/{dogName}") { backStackEntry ->
             val dogName = backStackEntry.arguments?.getString("dogName") ?: ""
-            DogDetailScreen(dogName, navController)
+            DogDetailScreen(dogName, navController, dogViewModel)
         }
-
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DogListScreen(navController: NavController) {
-    var dogList by remember { mutableStateOf(listOf("Reks","Azor","Łatka")) }
+fun DogListScreen(navController: NavController, dogViewModel: DogViewModel) {
     var searchQuery by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
     var likedDogs by remember { mutableStateOf(setOf<String>()) }
-    val alert = remember { mutableStateOf("") }
+    var alert = remember { mutableStateOf("") }
+
     val filteredDogList = if (isSearching) {
-        dogList.filter { it.contains(searchQuery, ignoreCase = true) }
+        dogViewModel.dogList.filter { it.contains(searchQuery, ignoreCase = true) }
     } else {
-        dogList
+        dogViewModel.dogList
     }
 
     val sortedDogList = filteredDogList.sortedWith { dog1, dog2 ->
@@ -125,58 +130,46 @@ fun DogListScreen(navController: NavController) {
                 searchQuery = searchQuery,
                 onQueryChange = { searchQuery = it },
                 onAddDog = {
-                    if (it.isNotBlank() && !dogList.contains(it)) {
-
-                        dogList = dogList + it
+                    if (it.isNotBlank() && !dogViewModel.dogList.contains(it)) {
+                        dogViewModel.dogList.add(it)
                         searchQuery = ""
                         errorsearch = Color.Unspecified
-
-
-                    }else if(dogList.contains(it))
+                        alert.value = ""
+                    }else if(dogViewModel.dogList.contains(it))
+                    {
                         errorsearch = Color.Red
-                        alert.value = "Piesek jest juz w bazie"
+                        alert.value = "piesek juz zostal dodany"
+                    }
                 },
-                onSearchClick = {
-
-                    isSearching = true
-                }
+                onSearchClick = { isSearching = true }
             )
 
             Text(
-                text = "\uD83D\uDC15: ${dogList.size} \u2764: ${likedDogs.size}",
+                text = "\uD83D\uDC15: ${dogViewModel.dogList.size} \u2764: ${likedDogs.size}",
                 fontSize = 16.sp,
                 modifier = Modifier.padding(16.dp)
             )
 
             Spacer(modifier = Modifier.height(10.dp))
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-
-                if (sortedDogList.isEmpty()) {
-                    Text("No matching dogs found", fontSize = 18.sp)
-                } else {
-                    sortedDogList.forEach { dog ->
-                        DogItem(
-                            dogName = dog,
-                            isLiked = likedDogs.contains(dog),
-                            onLikeClick = {
-                                likedDogs = if (likedDogs.contains(dog)) {
-                                    likedDogs - dog
-                                } else {
-                                    likedDogs + dog
-                                }
-                            },
-                            onDeleteClick = {
-                                dogList = dogList.filterNot { it == dog }
-                                likedDogs = likedDogs - dog
-                            }, navController = navController
-                        )
-                    }
+                sortedDogList.forEach { dog ->
+                    DogItem(
+                        dogName = dog,
+                        isLiked = likedDogs.contains(dog),
+                        onLikeClick = {
+                            likedDogs = if (likedDogs.contains(dog)) likedDogs - dog else likedDogs + dog
+                        },
+                        onDeleteClick = {
+                            dogViewModel.dogList.remove(dog)
+                            likedDogs = likedDogs - dog
+                        },
+                        navController = navController
+                    )
                 }
             }
             Text(
-
-                modifier = Modifier.clickable { alert.value="" },
-                text = alert.value
+                text = alert.value,
+                modifier = Modifier.clickable { alert.value = "" }
             )
         }
     }
@@ -250,10 +243,10 @@ fun SearchBar(searchQuery: String, onQueryChange: (String) -> Unit, onAddDog: (S
             modifier = Modifier.weight(1f).background(errorsearch)
         )
         IconButton(onClick = onSearchClick) {
-            Icon(Icons.Default.Search, contentDescription = "Wyszukaj")
+            Icon(Icons.Default.Search, contentDescription = "Search")
         }
         IconButton(onClick = { onAddDog(searchQuery) }) {
-            Icon(Icons.Default.Add, contentDescription = "Dodaj")
+            Icon(Icons.Default.Add, contentDescription = "Add")
         }
     }
 }
@@ -331,7 +324,7 @@ fun ProfileScreen(navController: NavController) {
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DogDetailScreen(dogName: String, navController: NavController) {
+fun DogDetailScreen(dogName: String, navController: NavController, dogViewModel: DogViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -340,10 +333,7 @@ fun DogDetailScreen(dogName: String, navController: NavController) {
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Detale",
-                            fontSize = 20.sp
-                        )
+                        Text("Detale", fontSize = 20.sp)
                     }
                 },
                 navigationIcon = {
@@ -352,18 +342,18 @@ fun DogDetailScreen(dogName: String, navController: NavController) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Delete action */ }) {
+                    IconButton(onClick = {
+                        dogViewModel.dogList.remove(dogName)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.Filled.Delete, contentDescription = "Delete")
                     }
                 }
             )
         }
-    )
-    { innerPadding ->
+    ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize(),
+            modifier = Modifier.padding(innerPadding).fillMaxSize(),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = CenterHorizontally
         ) {
@@ -373,15 +363,11 @@ fun DogDetailScreen(dogName: String, navController: NavController) {
                 modifier = Modifier
                     .size(160.dp)
                     .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xff65558f),
-                            Color(0xf0eeb6e8)
-                        ),
+                        Brush.linearGradient(
+                            colors = listOf(Color(0xff65558f), Color(0xf0eeb6e8))
                         )
                     )
                     .padding(16.dp)
-
             ) {
                 Text(
                     text = "\uD83D\uDC15",
@@ -389,13 +375,9 @@ fun DogDetailScreen(dogName: String, navController: NavController) {
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
-            Text(
-                text = "$dogName",
-                fontSize = 18.sp,
-                modifier = Modifier.padding(top = 8.dp)
-            )
+            Text(text = dogName, fontSize = 18.sp, modifier = Modifier.padding(top = 8.dp))
         }
     }
-
 }
+
 
