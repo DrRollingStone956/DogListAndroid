@@ -3,17 +3,13 @@ package com.example.doglist
 
 import androidx.compose.runtime.mutableStateListOf
 import android.os.Bundle
-import android.widget.TextView
-
+import androidx.compose.foundation.lazy.items
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.*
-
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -22,34 +18,27 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
-import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight.Companion.Bold
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-
 import com.example.doglist.ui.theme.DogListTheme
+
 var errorsearch = Color.Unspecified
 
 class DogViewModel : ViewModel() {
-    var dogList = mutableStateListOf("Reks", "Azor", "Łatka")
+    var dogList = mutableStateListOf("Reks", "Azor", "Latka")
 }
 
 class MainActivity : ComponentActivity() {
@@ -85,22 +74,16 @@ fun DogListScreen(navController: NavController, dogViewModel: DogViewModel) {
     var searchQuery by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
     var likedDogs by remember { mutableStateOf(setOf<String>()) }
-    var alert = remember { mutableStateOf("") }
-
-    val filteredDogList = if (isSearching) {
-        dogViewModel.dogList.filter { it.contains(searchQuery, ignoreCase = true) }
-    } else {
-        dogViewModel.dogList
-    }
-
-    val sortedDogList = filteredDogList.sortedWith { dog1, dog2 ->
+    val alert = remember { mutableStateOf("") }
+    var searchResult by remember { mutableStateOf<List<String>>(emptyList()) }
+    val dogListToShow = if (isSearching) searchResult else dogViewModel.dogList
+    val sortedDogList = dogListToShow.sortedWith { dog1, dog2 ->
         when {
             likedDogs.contains(dog1) && !likedDogs.contains(dog2) -> -1
             !likedDogs.contains(dog1) && likedDogs.contains(dog2) -> 1
             else -> dog1.compareTo(dog2)
         }
     }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -128,31 +111,38 @@ fun DogListScreen(navController: NavController, dogViewModel: DogViewModel) {
         Column(modifier = Modifier.padding(innerPadding)) {
             SearchBar(
                 searchQuery = searchQuery,
-                onQueryChange = { searchQuery = it },
+                onQueryChange = {
+                    searchQuery = it
+                    if (it.isBlank()) {
+                        isSearching = false
+                        searchResult = dogViewModel.dogList
+                    }
+                    errorsearch = Color.Unspecified
+                    alert.value = ""
+                   },
                 onAddDog = {
                     if (it.isNotBlank() && !dogViewModel.dogList.contains(it)) {
                         dogViewModel.dogList.add(it)
                         searchQuery = ""
-                        errorsearch = Color.Unspecified
-                        alert.value = ""
-                    }else if(dogViewModel.dogList.contains(it))
-                    {
+                    } else if (dogViewModel.dogList.contains(it)) {
                         errorsearch = Color.Red
                         alert.value = "piesek juz zostal dodany"
                     }
                 },
-                onSearchClick = { isSearching = true }
+                onSearchClick = {
+                    isSearching = true
+                    searchResult = if (searchQuery.isBlank()) dogViewModel.dogList else
+                        dogViewModel.dogList.filter { it.contains(searchQuery, ignoreCase = true) }
+                }
             )
-
             Text(
                 text = "\uD83D\uDC15: ${dogViewModel.dogList.size} \u2764: ${likedDogs.size}",
                 fontSize = 16.sp,
                 modifier = Modifier.padding(16.dp)
             )
-
             Spacer(modifier = Modifier.height(10.dp))
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                sortedDogList.forEach { dog ->
+            LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
+                items(sortedDogList) { dog ->
                     DogItem(
                         dogName = dog,
                         isLiked = likedDogs.contains(dog),
@@ -177,14 +167,12 @@ fun DogListScreen(navController: NavController, dogViewModel: DogViewModel) {
 
 @Composable
 fun DogItem(dogName: String, isLiked: Boolean, onLikeClick: () -> Unit, onDeleteClick: () -> Unit, navController: NavController) {
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-
         Text(
             text = "\uD83D\uDC15",
             fontSize = 24.sp,
@@ -196,32 +184,26 @@ fun DogItem(dogName: String, isLiked: Boolean, onLikeClick: () -> Unit, onDelete
                             Color(0xff65558f),
                             Color(0xf0eeb6e8)
                         )
-
                     )
                 )
         )
-
         Text(
             text = dogName,
             fontSize = 18.sp,
             modifier = Modifier
                 .weight(1f)
                 .clickable {
-
                     navController.navigate("dogDetail/$dogName")
                 }
         )
-
         IconButton(onClick = onLikeClick) {
             val icon = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder
             Icon(
                 icon,
                 contentDescription = "Fav",
                 tint = Color(0xf0eeb6e8)
-
             )
         }
-
         IconButton(onClick = onDeleteClick) {
             Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Color.Red)
         }
@@ -251,7 +233,6 @@ fun SearchBar(searchQuery: String, onQueryChange: (String) -> Unit, onAddDog: (S
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(navController: NavController) {
@@ -278,6 +259,7 @@ fun SettingsScreen(navController: NavController) {
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
@@ -322,6 +304,7 @@ fun ProfileScreen(navController: NavController) {
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DogDetailScreen(dogName: String, navController: NavController, dogViewModel: DogViewModel) {
@@ -358,7 +341,6 @@ fun DogDetailScreen(dogName: String, navController: NavController, dogViewModel:
             horizontalAlignment = CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(60.dp))
-
             Box(
                 modifier = Modifier
                     .size(160.dp)
@@ -379,5 +361,3 @@ fun DogDetailScreen(dogName: String, navController: NavController, dogViewModel:
         }
     }
 }
-
-
