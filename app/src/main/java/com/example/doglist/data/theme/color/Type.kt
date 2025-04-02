@@ -1,4 +1,4 @@
-package com.example.doglist.ui.theme
+package com.example.doglist.data.theme.color
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

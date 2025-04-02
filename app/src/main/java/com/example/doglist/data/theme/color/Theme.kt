@@ -1,6 +1,5 @@
-package com.example.doglist.ui.theme
+package com.example.doglist.data.theme.color
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

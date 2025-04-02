@@ -33,7 +33,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.doglist.ui.theme.DogListTheme
+import com.example.doglist.data.theme.color.DogListTheme
 
 var errorsearch = Color.Unspecified
 
