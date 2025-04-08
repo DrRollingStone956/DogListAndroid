@@ -1,10 +1,11 @@
 package com.example.doglist
 
 import android.app.Application
+import com.example.doglist.data.theme.AppContainer
 
 class DoggoApplication : Application() {
-   // TODO
-    //lateinit var container: AppContainer
+
+    lateinit var container: AppContainer
     override fun onCreate() {
         super.onCreate()
     }

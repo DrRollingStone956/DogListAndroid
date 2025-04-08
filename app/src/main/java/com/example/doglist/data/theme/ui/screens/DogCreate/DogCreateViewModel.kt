@@ -15,7 +15,7 @@ import com.example.doglist.data.theme.DogsPhotosRepository
 import com.example.doglist.model.DogPhoto
 import kotlinx.coroutines.launch
 
-class StudentDetailsViewModel(
+class DogDetailsViewModel(
     private val dogsPhotosRepository: DogsPhotosRepository
 ) : ViewModel() {
 
@@ -43,13 +43,13 @@ class StudentDetailsViewModel(
         }
     }
 
-   /* companion object {
+    companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application = (this[APPLICATION_KEY] as DoggoApplication)
                 val dogsPhotosRepository = application.container.dogsPhotosRepository
-                StudentDetailsViewModel(dogsPhotosRepository)
+                DogDetailsViewModel(dogsPhotosRepository)
             }
         }
-    }*/
+    }
 }

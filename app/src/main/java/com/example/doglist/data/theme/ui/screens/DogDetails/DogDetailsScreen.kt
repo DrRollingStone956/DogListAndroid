@@ -34,11 +34,12 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.example.doglist.model.DogPhoto
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DogDetailsScreen(
     route: DogPhoto,
-    //uiState: DogDetailsViewModel.UiState,
+    uiState: DogDetailsViewModel.UiState,
     retryAction: () -> Unit,
     navController: NavController,
     onDeleteDog: (String) -> Unit
@@ -79,12 +80,12 @@ fun DogDetailsScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            //ContentScreen(uiState, retryAction)
+            ContentScreen(uiState, retryAction)
         }
     }
 }
 
-/*@Composable
+@Composable
 fun ContentScreen(uiState: DogDetailsViewModel.UiState, retryAction: () -> Unit, modifier: Modifier = Modifier) {
     when(uiState) {
         is DogDetailsViewModel.UiState.Loading -> LoadingScreen(
@@ -104,7 +105,7 @@ fun ContentScreen(uiState: DogDetailsViewModel.UiState, retryAction: () -> Unit,
         }
 
     }
-}*/
+}
 
 @Composable
 fun LoadingScreen(modifier: Modifier = Modifier) {
